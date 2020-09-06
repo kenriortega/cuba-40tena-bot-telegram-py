@@ -1,0 +1,13 @@
+[Unit]
+Description= Bot de telegram hecho en python jiji
+After=network.target
+
+[Service]
+Restart=always
+RestartSec=5
+User=pi
+WorkingDirectory=/home/pi/proyects/bot_pi_wheather
+ExecStart=/home/pi/proyects/bot_pi_wheather/venv/bin/python3 bot.py
+
+[Install]
+WantedBy=multi-user.target
