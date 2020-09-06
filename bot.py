@@ -36,6 +36,10 @@ def start(update, context):
                 callback_data='diez de octubre',
             ),
             InlineKeyboardButton(
+                "Cerro",
+                callback_data='cerro',
+            ),
+            InlineKeyboardButton(
                 "Plaza de la revolucion",
                 callback_data='plaza de la revolucion',
             ),
@@ -61,14 +65,14 @@ def button(update, context):
     )
     query.edit_message_text(text=f"""
                     El tiempo en {query.data} es:
-                    tempC: {r.json().get('tempC')}
-                    tempF: {r.json().get('tempF')}
-                    Humedad: {r.json().get('humidity')}
-                    Presion: {r.json().get('pressure')}
-                    timeStamp: {r.json().get('timestamp')}
-                    Viento: {r.json().get('windDirectionDescription')}
-                    Descripcion: {r.json().get('descriptionWeather')}
-                    icon: {r.json().get('iconWeather')}
+        tempC: {r.json().get('tempC')}
+        tempF: {r.json().get('tempF')}
+        Humedad: {r.json().get('humidity')}
+        Presion: {r.json().get('pressure')}
+        Time: {r.json().get('timestamp')}
+        Viento: {r.json().get('windDirectionDescription')}
+        Descripcion: {r.json().get('descriptionWeather')}
+        icon: {r.json().get('iconWeather')}
                             """)
 
 
@@ -80,9 +84,6 @@ def main():
     updater.dispatcher.add_handler(CommandHandler('start', start))
     updater.dispatcher.add_handler(CallbackQueryHandler(button))
     updater.dispatcher.add_handler(CommandHandler('help', help_command))
-    updater.dispatcher.add_handler(
-        CommandHandler("wheather", get_wheather),
-    )
 
     # Start BOT
     updater.start_polling()
