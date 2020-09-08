@@ -93,52 +93,53 @@ def get_acction_buttom(update, context):
     except json.JSONDecodeError:
         data = query.data
 
-    if 'wh' in data.split("_"):
-        municipio = data.split("_")[1]
-        r = requests.get(
-            f"https://cuba-weather-serverless.vercel.app/api/get-weather?name={municipio}",
-        )
-        query.edit_message_text(text=f"""
-            El tiempo en {data.split("_")[1]} es:
-            tempC: {r.json().get('tempC')}
-            tempF: {r.json().get('tempF')}
-            Humedad: {r.json().get('humidity')}
-            Presion: {r.json().get('pressure')}
-            Time: {r.json().get('timestamp')}
-            Viento: {r.json().get('windDirectionDescription')}
-            Descripcion: {r.json().get('descriptionWeather')}
-            icon: {r.json().get('iconWeather')}
-                                """)
-    elif 'cv' in data.split("_"):
-        prov = data.split("_")[1]
+    try:
+        if 'wh' in data.split("_"):
+            municipio = data.split("_")[1]
+            r = requests.get(
+                f"https://cuba-weather-serverless.vercel.app/api/get-weather?name={municipio}",
+            )
+            query.edit_message_text(text=f"""
+                El clima en {data.split("_")[1]} es:
+                tempC: {r.json().get('tempC')}
+                tempF: {r.json().get('tempF')}
+                Humedad: {r.json().get('humidity')}
+                Presion: {r.json().get('pressure')}
+                Time: {r.json().get('timestamp')}
+                Viento: {r.json().get('windDirectionDescription')}
+                Descripcion: {r.json().get('descriptionWeather')}
+                icon: {r.json().get('iconWeather')}
+                                    """)
+        elif 'cv' in data.split("_"):
+            prov = data.split("_")[1]
 
-        r = requests.get(
-            "https://covid19cuba.github.io/covid19cubadata.github.io/api/v2/full.json",
-        )
+            r = requests.get(
+                "https://covid19cuba.github.io/covid19cubadata.github.io/api/v2/full.json",
+            )
+            provincia = r.json().get('provinces')[prov].get('all')
+            fecha_updated = provincia.get('updated')
+            affected = provincia.get(
+                'deceases_affected_municipalities')
+            text_affected = ""
+            for af in affected:
+                text_affected += f"🏘️: {af.get('name')} con 🤢: {af.get('value')}\n\n"
 
-        provincia = r.json().get('provinces')[prov].get('all')
-        fecha_updated = provincia.get('updated')
-        affected = provincia.get(
-            'deceases_affected_municipalities')
-        text_affected = ""
-        for af in affected:
-            text_affected += f"""
-            #####
-            Name: {af.get('name')}
-            Cant: {af.get('value')}
-            #####
-            """
-        query.edit_message_text(text=f"""
-                        Este es el ultimo pronostico del dia {fecha_updated} en {prov}:
+            message = f"📅: {fecha_updated}\n\n {text_affected}"
+            context.bot.sendMessage(
+                chat_id=update.effective_chat.id, text=message)
 
-                        {text_affected}
-                        """)
+    except Exception as e:
+        logging.error(e)
 
 
 def main():
     # config = SettingFile(
     #     file_path="/home/pi/proyects/bot_pi_wheather/secrets.yaml")
-    updater = Updater(token=os.getenv('TELEGRAM_TOKEN'), use_context=True)
+    updater = Updater(
+        token=os.getenv('TELEGRAM_TOKEN'),
+        use_context=True,
+        # request_kwargs={'read_timeout': 60, 'connect_timeout': 70},
+    )
 
     dp = updater.dispatcher
     dp.add_handler(CommandHandler('clima', clima))
