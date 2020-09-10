@@ -1,19 +1,37 @@
 import logging
-from settings import SettingFile
-from dotenv import load_dotenv
 import os
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Updater, CommandHandler, CallbackQueryHandler
-import requests
+import sys
 import json
+import requests
+from threading import Thread
+from dotenv import load_dotenv
+from telegram.update import Update
+from telegram.ext.callbackcontext import CallbackContext
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, ReplyKeyboardRemove
+from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, MessageHandler, Filters
+from settings import SettingFile
+
+__author__ = os.getenv('ADMIN_USER')
 # Load methods
-# logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-#                     level=logging.INFO)
-# logger = logging.getLogger(__name__)
+logdir_path = os.path.dirname(os.path.abspath(__file__))
+logfile_path = os.path.join(logdir_path, "logs", "bot.log")
+
+if not os.path.exists(os.path.join(logdir_path, "logs")):
+    os.makedirs(os.path.join(logdir_path, "logs"))
+
+logfile_handler = logging.handlers.WatchedFileHandler(
+    logfile_path, 'a', 'utf-8')
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO,
+    # handlers=[logfile_handler],
+)
 load_dotenv()
 
 
-def clima(update, context):
+def clima_command(update: Update, context: CallbackContext):
     keyboard = [
         [
             InlineKeyboardButton(
@@ -50,7 +68,7 @@ def clima(update, context):
     update.message.reply_text('Please choose:', reply_markup=reply_markup)
 
 
-def covid19_prov(update, context):
+def covid19_command(update: Update, context: CallbackContext):
     keyboard = [
         [
             InlineKeyboardButton(
@@ -72,22 +90,52 @@ def covid19_prov(update, context):
     update.message.reply_text('Please choose:', reply_markup=reply_markup)
 
 
-def help_command(update, context):
+def acctions_command(update: Update, context: CallbackContext):
+    keyboard = [
+        [
+            InlineKeyboardButton(
+                "🤢",
+                callback_data='covid19',
+            ),
+        ],
+
+        [
+            InlineKeyboardButton(
+                "👇",
+                callback_data='qa_hide',
+            ),
+        ],
+    ]
+    reply_markup = ReplyKeyboardMarkup(keyboard)
+    update.message.reply_text('... ', reply_markup=reply_markup)
+
+
+def hide_command(update: Update, context: CallbackContext):
+    """Hides the keyboard in the specified chat."""
+    update.message.reply_text("\U0001F44D", reply_markup=ReplyKeyboardRemove())
+
+
+def help_command(update: Update, context: CallbackContext):
     name = update.message.from_user.username
 
-    update.message.reply_text(f"""
-    Hi {name} Use this commands:
+    text = "/help - {}\n" \
+           "/covid19  - {}\n" \
+           "/clima - {}\n" \
+           "/quick_actions - {}\n" \
+           "/hide - {}" \
+        .format("F1",
+                "datos sobre el covid19",
+                "datos sobre el clima",
+                "quick actions [developing]",
+                "ocultar quick actions",
+                )
 
-    /covid19 to get status in your municipality.
-
-    /clima to get wheather in your locale
-                              """)
+    update.message.reply_text(text)
 
 
-def get_acction_buttom(update, context):
+def get_acction_buttom(update: Update, context: CallbackContext):
     query = update.callback_query
     query.answer()
-
     try:
         data = json.loads(query.data)
     except json.JSONDecodeError:
@@ -132,6 +180,16 @@ def get_acction_buttom(update, context):
         logging.error(e)
 
 
+def filter_text_input(update, context):
+
+    usr_msg_text = update.message.text
+    usr_chat_id = update.effective_chat.id
+
+    if "👇" in usr_msg_text:
+        context.bot.sendMessage(
+            chat_id=update.effective_chat.id, text=f"/hide")
+
+
 def main():
     # config = SettingFile(
     #     file_path="/home/pi/proyects/bot_pi_wheather/secrets.yaml")
@@ -142,16 +200,45 @@ def main():
     )
 
     dp = updater.dispatcher
-    dp.add_handler(CommandHandler('clima', clima))
-    dp.add_handler(CommandHandler('covid19', covid19_prov))
-    dp.add_handler(CallbackQueryHandler(get_acction_buttom))
-    dp.add_handler(CommandHandler('help', help_command))
 
+    dp.add_handler(CommandHandler('clima', clima_command))
+    dp.add_handler(CommandHandler('covid19', covid19_command))
+    dp.add_handler(CommandHandler('quick_actions', acctions_command))
+    dp.add_handler(CommandHandler('help', help_command))
+    dp.add_handler(CommandHandler('hide', hide_command))
+    dp.add_handler(CallbackQueryHandler(get_acction_buttom))
+
+    # Restart bot
+
+    def stop_and_restart():
+        """Gracefully stop the Updater and replace the current process with a new one"""
+        updater.stop()
+        os.execl(sys.executable, sys.executable, *sys.argv)
+
+    def restart(update, context):
+        update.message.reply_text('Bot is restarting...')
+        Thread(target=stop_and_restart).start()
+
+    # ...or here...
+
+    dp.add_handler(CommandHandler(
+        'r', restart, filters=Filters.user(username=os.getenv('ADMIN_USER'))))
+    # ...or here, depending on your preference :)
+
+    # bot's text handlers
+    text_update_handler = MessageHandler(Filters.text, filter_text_input)
+    dp.add_handler(text_update_handler)
+
+    # here put the jobs for the bot
+    # job_queue = updater.job_queue
+
+    # check api list - each 60sec, start on 5sec after the bot starts
+    # job_queue.run_repeating()
     # Start BOT
     updater.start_polling()
-    print("Estoy up")
-    # EN espera de mensajes
+    logger.info('Listening humans as %s..' % updater.bot.username)
     updater.idle()
+    logger.info('Bot stopped gracefully')
 
 
 if __name__ == "__main__":
