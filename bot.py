@@ -14,12 +14,9 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMa
 from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, MessageHandler, Filters
 
 # my own libs
-from settings import redis_config
 
-__author__ = os.getenv('ADMIN_USER')
 
-rds = redis.Redis(**redis_config)
-now = datetime.now()  # current date and time
+# current date and time
 
 # Load methods
 logdir_path = os.path.dirname(os.path.abspath(__file__))
@@ -33,11 +30,19 @@ logfile_handler = logging.handlers.WatchedFileHandler(
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s - func:%(funcName)s - line:%(funcName)s',
     level=logging.INFO,
     # handlers=[logfile_handler],
 )
 load_dotenv()
+
+__author__ = os.getenv('ADMIN_USER')
+
+rds = redis.Redis(host=os.getenv('REDIS_URI'), port=os.getenv(
+    'REDIS_PORT'), password=os.getenv('REDIS_PASS'), db=0)
+print(type(os.getenv(
+    'REDIS_PORT')))
+now = datetime.now()
 
 
 def clima_command(update: Update, context: CallbackContext):
@@ -138,14 +143,6 @@ def help_command(update: Update, context: CallbackContext):
 
 
 def get_clima_from_redis(key: str) -> dict:
-    """Make a simple redis cache from api CUBA-WHEATHER
-
-    Args:
-        key (str): key for redis identification
-
-    Returns:
-        dict: values to use in response
-    """
     try:
         municipio, fecha = key.split("_")
         value = rds.get(name=key)
@@ -171,14 +168,6 @@ def get_clima_from_redis(key: str) -> dict:
 
 
 def get_covid19_from_redis(key: str) -> dict:
-    """Make a simple redis cache from api covid19
-
-    Args:
-        key (str): key for redis identification
-
-    Returns:
-        dict: values to use in response
-    """
     try:
         prov, fecha = key.split("_")
         value = rds.get(name=key)
@@ -213,15 +202,14 @@ def get_acction_buttom(update: Update, context: CallbackContext):
     except json.JSONDecodeError:
         data = query.data
 
-    date_time = now.strftime("%m-%d-%YT%H:%M")
+    date_time = now.strftime("%m-%d-%YT%H")
+    # date_time = now.strftime("%m-%d-%YT%H:%M")
 
     try:
         if 'wh' in data.split("_"):
             municipio = data.split("_")[1]
 
-            key = f"{municipio}_{date_time}"
-
-            value = get_clima_from_redis(key=key)
+            value = get_clima_from_redis(key=f"{municipio}_{date_time}")
 
             query.edit_message_text(text=f"""
                 El clima en {municipio} es:
@@ -234,11 +222,15 @@ def get_acction_buttom(update: Update, context: CallbackContext):
                 Descripcion: {value.get('descriptionWeather')}
                 icon: {value.get('iconWeather')}
                                     """)
+
         elif 'cv' in data.split("_"):
+
             prov = data.split("_")[1]
-            key = f"{prov}_{date_time}"
-            value = get_covid19_from_redis(key=key)
+
+            value = get_covid19_from_redis(key=f"{prov}_{date_time}")
+
             text_affected = ""
+
             for af in value.get('afectados'):
                 text_affected += f"🏘️: {af.get('name')} con 🤢: {af.get('value')}\n\n"
 
@@ -264,7 +256,7 @@ def main():
     updater = Updater(
         token=os.getenv('TELEGRAM_TOKEN'),
         use_context=True,
-        # request_kwargs={'read_timeout': 60, 'connect_timeout': 70},
+        request_kwargs={'read_timeout': 60, 'connect_timeout': 70},
     )
 
     dp = updater.dispatcher
