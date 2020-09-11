@@ -138,6 +138,14 @@ def help_command(update: Update, context: CallbackContext):
 
 
 def get_clima_from_redis(key: str) -> dict:
+    """Make a simple redis cache from api CUBA-WHEATHER
+
+    Args:
+        key (str): key for redis identification
+
+    Returns:
+        dict: values to use in response
+    """
     try:
         municipio, fecha = key.split("_")
         value = rds.get(name=key)
@@ -163,6 +171,14 @@ def get_clima_from_redis(key: str) -> dict:
 
 
 def get_covid19_from_redis(key: str) -> dict:
+    """Make a simple redis cache from api covid19
+
+    Args:
+        key (str): key for redis identification
+
+    Returns:
+        dict: values to use in response
+    """
     try:
         prov, fecha = key.split("_")
         value = rds.get(name=key)
