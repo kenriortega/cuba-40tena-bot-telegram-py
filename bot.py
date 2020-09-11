@@ -3,15 +3,24 @@ import os
 import sys
 import json
 import requests
+import redis
 from threading import Thread
 from dotenv import load_dotenv
+from datetime import datetime
+# telegram api
 from telegram.update import Update
 from telegram.ext.callbackcontext import CallbackContext
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, MessageHandler, Filters
-from settings import SettingFile
+
+# my own libs
+from settings import redis_config
 
 __author__ = os.getenv('ADMIN_USER')
+
+rds = redis.Redis(**redis_config)
+now = datetime.now()  # current date and time
+
 # Load methods
 logdir_path = os.path.dirname(os.path.abspath(__file__))
 logfile_path = os.path.join(logdir_path, "logs", "bot.log")
@@ -118,19 +127,66 @@ def hide_command(update: Update, context: CallbackContext):
 def help_command(update: Update, context: CallbackContext):
     name = update.message.from_user.username
 
-    text = "/help - {}\n" \
-           "/covid19  - {}\n" \
-           "/clima - {}\n" \
-           "/quick_actions - {}\n" \
-           "/hide - {}" \
-        .format("F1",
-                "datos sobre el covid19",
-                "datos sobre el clima",
-                "quick actions [developing]",
-                "ocultar quick actions",
-                )
+    text = f"""
+    CMDS:
+    /help - F1
+    /covid19  - datos sobre el covid19
+    /clima - datos sobre el clima
+    """
 
     update.message.reply_text(text)
+
+
+def get_clima_from_redis(key: str) -> dict:
+    try:
+        municipio, fecha = key.split("_")
+        value = rds.get(name=key)
+
+        if value is None:
+            # no existe value make request
+            r = requests.get(
+                f"https://cuba-weather-serverless.vercel.app/api/get-weather?name={municipio}",
+            )
+            value = r.json()
+            value = {
+                "fecha": fecha,
+                **r.json()
+            }
+
+            rds.set(name=key, value=f"{json.dumps(value)}", ex=3000)
+            return value
+        else:
+            value = json.loads(value.decode("utf-8"))
+            return value
+    except Exception as e:
+        logger.error(e)
+
+
+def get_covid19_from_redis(key: str) -> dict:
+    try:
+        prov, fecha = key.split("_")
+        value = rds.get(name=key)
+        if value is None:
+            # no existe value make request
+            r = requests.get(
+                "https://covid19cuba.github.io/covid19cubadata.github.io/api/v2/full.json",
+            )
+            provincia = r.json().get('provinces')[prov].get('all')
+            fecha_updated = provincia.get('updated')
+            affected = provincia.get(
+                'deceases_affected_municipalities')
+            value = {
+                "fecha": fecha_updated,
+                "afectados": affected
+            }
+            rds.set(name=key, value=f"{json.dumps(value)}", ex=3000)
+            return value
+        else:
+            value = json.loads(value.decode("utf-8"))
+
+            return value
+    except Exception as e:
+        logger.error(e)
 
 
 def get_acction_buttom(update: Update, context: CallbackContext):
@@ -141,38 +197,36 @@ def get_acction_buttom(update: Update, context: CallbackContext):
     except json.JSONDecodeError:
         data = query.data
 
+    date_time = now.strftime("%m-%d-%YT%H:%M")
+
     try:
         if 'wh' in data.split("_"):
             municipio = data.split("_")[1]
-            r = requests.get(
-                f"https://cuba-weather-serverless.vercel.app/api/get-weather?name={municipio}",
-            )
+
+            key = f"{municipio}_{date_time}"
+
+            value = get_clima_from_redis(key=key)
+
             query.edit_message_text(text=f"""
-                El clima en {data.split("_")[1]} es:
-                tempC: {r.json().get('tempC')}
-                tempF: {r.json().get('tempF')}
-                Humedad: {r.json().get('humidity')}
-                Presion: {r.json().get('pressure')}
-                Time: {r.json().get('timestamp')}
-                Viento: {r.json().get('windDirectionDescription')}
-                Descripcion: {r.json().get('descriptionWeather')}
-                icon: {r.json().get('iconWeather')}
+                El clima en {municipio} es:
+                tempC: {value.get('tempC')}
+                tempF: {value.get('tempF')}
+                Humedad: {value.get('humidity')}
+                Presion: {value.get('pressure')}
+                Time: {value.get('timestamp')}
+                Viento: {value.get('windDirectionDescription')}
+                Descripcion: {value.get('descriptionWeather')}
+                icon: {value.get('iconWeather')}
                                     """)
         elif 'cv' in data.split("_"):
             prov = data.split("_")[1]
-
-            r = requests.get(
-                "https://covid19cuba.github.io/covid19cubadata.github.io/api/v2/full.json",
-            )
-            provincia = r.json().get('provinces')[prov].get('all')
-            fecha_updated = provincia.get('updated')
-            affected = provincia.get(
-                'deceases_affected_municipalities')
+            key = f"{prov}_{date_time}"
+            value = get_covid19_from_redis(key=key)
             text_affected = ""
-            for af in affected:
+            for af in value.get('afectados'):
                 text_affected += f"🏘️: {af.get('name')} con 🤢: {af.get('value')}\n\n"
 
-            message = f"📅: {fecha_updated}\n\n {text_affected}"
+            message = f"📅: {value.get('fecha')}\n\n {text_affected}"
             context.bot.sendMessage(
                 chat_id=update.effective_chat.id, text=message)
 
@@ -191,8 +245,6 @@ def filter_text_input(update, context):
 
 
 def main():
-    # config = SettingFile(
-    #     file_path="/home/pi/proyects/bot_pi_wheather/secrets.yaml")
     updater = Updater(
         token=os.getenv('TELEGRAM_TOKEN'),
         use_context=True,
@@ -203,7 +255,7 @@ def main():
 
     dp.add_handler(CommandHandler('clima', clima_command))
     dp.add_handler(CommandHandler('covid19', covid19_command))
-    dp.add_handler(CommandHandler('quick_actions', acctions_command))
+    # dp.add_handler(CommandHandler('quick_actions', acctions_command))
     dp.add_handler(CommandHandler('help', help_command))
     dp.add_handler(CommandHandler('hide', hide_command))
     dp.add_handler(CallbackQueryHandler(get_acction_buttom))
@@ -218,8 +270,6 @@ def main():
     def restart(update, context):
         update.message.reply_text('Bot is restarting...')
         Thread(target=stop_and_restart).start()
-
-    # ...or here...
 
     dp.add_handler(CommandHandler(
         'r', restart, filters=Filters.user(username=os.getenv('ADMIN_USER'))))
