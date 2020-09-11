@@ -1,3 +1,4 @@
+attrs==20.2.0
 autopep8==1.5.4
 certifi==2020.6.20
 cffi==1.14.2
@@ -5,11 +6,19 @@ chardet==3.0.4
 cryptography==3.1
 decorator==4.4.2
 idna==2.10
+iniconfig==1.0.1
+more-itertools==8.5.0
+packaging==20.4
+pluggy==0.13.1
+py==1.9.0
 pycodestyle==2.6.0
 pycparser==2.20
+pyparsing==2.4.7
+pytest==6.0.1
 python-dotenv==0.14.0
 python-telegram-bot==12.8
 PyYAML==5.3.1
+redis==3.5.3
 requests==2.24.0
 six==1.15.0
 toml==0.10.1
