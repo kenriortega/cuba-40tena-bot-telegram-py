@@ -4,6 +4,7 @@ from threading import Thread
 import sys
 from dotenv import load_dotenv
 # telegram api
+from telegram import BotCommand
 # from telegram.update import Update
 # from telegram.ext.callbackcontext import CallbackContext
 from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, MessageHandler, Filters
@@ -41,7 +42,13 @@ def main():
         use_context=True,
         request_kwargs={'read_timeout': 60, 'connect_timeout': 70},
     )
-
+    updater.bot.set_my_commands([
+        BotCommand("help", "Get help"),
+        BotCommand("covid19", "Get Covid Data"),
+        BotCommand("clima", "Get clima"),
+        BotCommand("hide", "Remove tag list"),
+        BotCommand("dev_to", "Get Top 5 articles"),
+    ])
     dp = updater.dispatcher
 
     dp.add_handler(CommandHandler('clima', clima_command))
