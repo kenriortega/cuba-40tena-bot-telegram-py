@@ -12,8 +12,7 @@ from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, MessageH
 # my own libs
 from core.commands import help_command, covid19_command, clima_command, hide_command, dev_command, start_command
 from core.handler import get_acction_buttom, filter_devto_by_tag
-
-# current date and time
+from core.configs import SettingFile
 
 # Load methods
 logdir_path = os.path.dirname(os.path.abspath(__file__))
@@ -37,18 +36,22 @@ __author__ = os.getenv('ADMIN_USER')
 
 
 def main():
+    config = SettingFile(
+        file_path="/home/pi/proyects/bot_pi_wheather/settings.yaml")
+    config_telegram = config.load_external_services_file()
     updater = Updater(
         token=os.getenv('TELEGRAM_TOKEN'),
         use_context=True,
         request_kwargs={'read_timeout': 60, 'connect_timeout': 70},
     )
-    updater.bot.set_my_commands([
-        BotCommand("help", "Get help"),
-        BotCommand("covid19", "Get Covid Data"),
-        BotCommand("clima", "Get clima"),
-        BotCommand("hide", "Remove tag list"),
-        BotCommand("dev_to", "Get Top 5 articles"),
-    ])
+    bot_commands = list(
+        map(lambda ink: BotCommand(
+            command=ink.get('text'),
+            description=ink.get('description'),
+        ), config_telegram.get('telegram').get('commands'),
+        )
+    )
+    updater.bot.set_my_commands(bot_commands)
     dp = updater.dispatcher
 
     dp.add_handler(CommandHandler('clima', clima_command))

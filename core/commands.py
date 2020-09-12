@@ -1,39 +1,36 @@
 from telegram.update import Update
 from telegram.ext.callbackcontext import CallbackContext
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, ReplyKeyboardRemove
+from core.configs import SettingFile
+from typing import List
+config = SettingFile(
+    file_path="/home/pi/proyects/bot_pi_wheather/settings.yaml")
+config_telegram = config.load_external_services_file()
 
 
 def clima_command(update: Update, context: CallbackContext):
-    keyboard = [
-        [
-            InlineKeyboardButton(
-                "Playa",
-                callback_data='wh_playa',
-            ),
-            InlineKeyboardButton(
-                "Centro Habana",
-                callback_data='wh_centro habana',
-            ),
-            InlineKeyboardButton(
-                "Habana del Este",
-                callback_data='wh_habana del este',
-            ),
-        ],
+    # keyboard_este = []
 
-        [
-            InlineKeyboardButton(
-                "Diez de Octubre",
-                callback_data='wh_diez de octubre',
-            ),
-            InlineKeyboardButton(
-                "Cerro",
-                callback_data='wh_cerro',
-            ),
-            InlineKeyboardButton(
-                "Plaza de la revolucion",
-                callback_data='wh_plaza de la revolucion',
-            ),
-        ],
+    keyboard_este = list(
+        map(lambda ink: InlineKeyboardButton(
+            text=ink.get('text'),
+            callback_data=ink.get(
+                'callback'),
+        ), config_telegram.get('telegram').get('mun_este'),
+        )
+    )
+    keyboard_oeste = list(
+        map(lambda ink: InlineKeyboardButton(
+            text=ink.get('text'),
+            callback_data=ink.get(
+                'callback'),
+        ), config_telegram.get('telegram').get('mun_oeste'),
+        )
+    )
+
+    keyboard = [
+        keyboard_este,
+        keyboard_oeste
     ]
 
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -41,21 +38,16 @@ def clima_command(update: Update, context: CallbackContext):
 
 
 def covid19_command(update: Update, context: CallbackContext):
+    keyboard_provs = list(
+        map(lambda ink: InlineKeyboardButton(
+            text=ink.get('text'),
+            callback_data=ink.get(
+                'callback'),
+        ), config_telegram.get('telegram').get('provs'),
+        )
+    )
     keyboard = [
-        [
-            InlineKeyboardButton(
-                "La Habana",
-                callback_data='cv_lha',
-            ),
-            InlineKeyboardButton(
-                "Artemisa",
-                callback_data='cv_art',
-            ),
-            InlineKeyboardButton(
-                "Camaguey",
-                callback_data='cv_cam',
-            ),
-        ],
+        keyboard_provs
     ]
 
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -63,28 +55,23 @@ def covid19_command(update: Update, context: CallbackContext):
 
 
 def dev_command(update: Update, context: CallbackContext):
+    keyboard_devto_left = list(
+        map(lambda ink: InlineKeyboardButton(
+            text=ink.get('text'),
+            callback_data="dev_to",
+        ), config_telegram.get('telegram').get('dev_to_left'),
+        )
+    )
+    keyboard_devto_rigth = list(
+        map(lambda ink: InlineKeyboardButton(
+            text=ink.get('text'),
+            callback_data="dev_to",
+        ), config_telegram.get('telegram').get('dev_to_rigth'),
+        )
+    )
     keyboard = [
-        [
-            InlineKeyboardButton(
-                "vue",
-                callback_data='covid19',
-            ),
-            InlineKeyboardButton(
-                "javascript",
-                callback_data='covid19',
-            ),
-        ],
-
-        [
-            InlineKeyboardButton(
-                "dotnet",
-                callback_data='qa_hide',
-            ),
-            InlineKeyboardButton(
-                "python",
-                callback_data='qa_hide',
-            ),
-        ],
+        keyboard_devto_left,
+        keyboard_devto_rigth
     ]
     reply_markup = ReplyKeyboardMarkup(keyboard)
     update.message.reply_text('waiting... ', reply_markup=reply_markup)

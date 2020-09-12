@@ -161,10 +161,7 @@ def filter_devto_by_tag(update, context):
 
     value = get_devto_from_redis(key=f"{usr_tag_text}_{date_time}")
     for a in value.get('articles'):
-        articles = f"""
-        {a.get('url')}
-        """
         context.bot.sendMessage(
             chat_id=update.effective_chat.id,
-            text=f"Contenido relacionado con {usr_tag_text}: \n{articles}"
+            text=f"#{usr_tag_text}: \n{a.get('url')}"
         )
