@@ -1,0 +1,48 @@
+telegram:
+  commands:
+    - text: "help"
+      description: "Get help"
+    - text: "covid19"
+      description: "Get Covid Data"
+    - text: "clima"
+      description: "Get clima"
+    - text: "hide"
+      description: "Remove tag list"
+    - text: "dev_to"
+      description: "Get Top 5 articles"
+  mun_este:
+    - text: Playa
+      callback: wh_playa
+    - text: Plaza de la revolucion
+      callback: wh_plaza de la revolucion
+    - text: Cerro
+      callback: wh_cerro
+  mun_oeste:
+    - text: Centro Habana
+      callback: wh_centro habana
+    - text: Habana del Este
+      callback: wh_habana del este
+    - text: Diez de Octubre
+      callback: wh_diez de octubre
+  provs:
+    - text: La Habana
+      callback: cv_lha
+    - text: Artemisa
+      callback: cv_art
+    - text: Camaguey
+      callback: cv_cam
+  dev_to_left:
+    - text: vue
+    - text: python
+    - text: javascript
+    - text: dotnet
+  dev_to_rigth:
+    - text: webdev
+    - text: productivity
+    - text: docker
+    - text: node
+
+services:
+  - url_covid: "https://covid19cuba.github.io/covid19cubadata.github.io/api/v2/full.json"
+  - url_wheather: "https://cuba-weather-serverless.vercel.app/api/get-weather?name="
+  - url_dev_to: "https://dev.to/api/articles"
