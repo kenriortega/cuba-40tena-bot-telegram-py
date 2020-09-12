@@ -38,6 +38,9 @@ load_dotenv()
 
 __author__ = os.getenv('ADMIN_USER')
 
+EXP_KEY_CLIMA = 30000*60
+EXP_KEY_COVID = 60000*60
+
 rds = redis.Redis(host=os.getenv('REDIS_URI'), port=os.getenv(
     'REDIS_PORT'), password=os.getenv('REDIS_PASS'), db=0)
 print(type(os.getenv(
@@ -158,7 +161,7 @@ def get_clima_from_redis(key: str) -> dict:
                 **r.json()
             }
 
-            rds.set(name=key, value=f"{json.dumps(value)}", ex=3000)
+            rds.set(name=key, value=f"{json.dumps(value)}", ex=EXP_KEY_CLIMA)
             return value
         else:
             value = json.loads(value.decode("utf-8"))
@@ -184,7 +187,7 @@ def get_covid19_from_redis(key: str) -> dict:
                 "fecha": fecha_updated,
                 "afectados": affected
             }
-            rds.set(name=key, value=f"{json.dumps(value)}", ex=3000)
+            rds.set(name=key, value=f"{json.dumps(value)}", ex=EXP_KEY_COVID)
             return value
         else:
             value = json.loads(value.decode("utf-8"))
