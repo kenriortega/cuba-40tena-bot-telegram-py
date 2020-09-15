@@ -10,7 +10,7 @@ from telegram import BotCommand
 from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, MessageHandler, Filters
 
 # my own libs
-from core.commands import help_command, covid19_command, clima_command, hide_command, dev_command, start_command
+from core.commands import help_command, covid19_command, clima_command, hide_command, dev_command, start_command, start_alarm_command, stop_alarm_command
 from core.handler import get_acction_buttom, filter_devto_by_tag
 from core.configs import SettingFile
 
@@ -53,6 +53,7 @@ def main():
     )
     updater.bot.set_my_commands(bot_commands)
     dp = updater.dispatcher
+    # jq = updater.job_queue
 
     dp.add_handler(CommandHandler('clima', clima_command))
     dp.add_handler(CommandHandler('covid19', covid19_command))
@@ -60,16 +61,20 @@ def main():
     dp.add_handler(CommandHandler('help', help_command))
     dp.add_handler(CommandHandler('hide', hide_command))
     dp.add_handler(CommandHandler('start', start_command))
+    dp.add_handler(CommandHandler('start_alert', start_alarm_command))
+    dp.add_handler(CommandHandler('stop_alert', stop_alarm_command))
     dp.add_handler(CallbackQueryHandler(get_acction_buttom))
 
     def stop_and_restart():
         """Gracefully stop the Updater and replace the current process with a new one"""
         updater.stop()
+        logger.info('Bot stopped gracefully')
         os.execl(sys.executable, sys.executable, *sys.argv)
 
     def restart(update, context):
         update.message.reply_text('Bot is restarting...')
         Thread(target=stop_and_restart).start()
+
     dp.add_handler(CommandHandler(
         'r', restart, filters=Filters.user(username=os.getenv('ADMIN_USER'))))
     # ...or here, depending on your preference :)
@@ -78,11 +83,6 @@ def main():
     text_update_handler = MessageHandler(Filters.text, filter_devto_by_tag)
     dp.add_handler(text_update_handler)
 
-    # here put the jobs for the bot
-    # job_queue = updater.job_queue
-
-    # check api list - each 60sec, start on 5sec after the bot starts
-    # job_queue.run_repeating()
     # Start BOT
     updater.start_polling()
     logger.info('Listening humans as %s..' % updater.bot.username)

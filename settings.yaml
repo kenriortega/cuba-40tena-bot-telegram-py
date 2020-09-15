@@ -43,6 +43,20 @@ telegram:
     - text: node
 
 services:
-  - url_covid: "https://covid19cuba.github.io/covid19cubadata.github.io/api/v2/full.json"
-  - url_wheather: "https://cuba-weather-serverless.vercel.app/api/get-weather?name="
-  - url_dev_to: "https://dev.to/api/articles"
+  - url: "https://covid19cuba.github.io/covid19cubadata.github.io/api/v2/full.json"
+    name: "covid"
+  - url: "https://cuba-weather-serverless.vercel.app/api/get-weather?name="
+    name: "clima"
+  - url: "https://dev.to/api/articles"
+    name: "dev.to"
+
+users:
+  - username: "@name"
+    chat_id: 0000000
+    enable: yes
+  - username: "@name"
+    chat_id: 000000
+    enable: yes
+  - username: "@name"
+    chat_id: 0000
+    enable: yes
