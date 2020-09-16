@@ -2,11 +2,11 @@ import os
 import requests
 import telegram
 from typing import List
-
+import logging
 from telegram.update import Update
 from telegram.ext.callbackcontext import CallbackContext
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, ReplyKeyboardRemove
-
+from telegram.error import (TelegramError, Unauthorized)
 from core.configs import SettingFile
 config = SettingFile(
     file_path="/home/pi/proyects/bot_pi_wheather/settings.yaml")
@@ -15,7 +15,10 @@ config_admin = SettingFile(
 config_telegram = config.load_external_services_file()
 config_admin_user = config_admin.load_external_services_file()
 
-INTERVAL_BY_HOURS = 7200  # 2h
+# INTERVAL_BY_HOURS = 7200  # 2h
+# INTERVAL_BY_HOURS = 3600  # 1h
+# INTERVAL_BY_HOURS = 1800  # 30m
+INTERVAL_BY_HOURS = 1800  # 30s
 
 
 def clima_command(update: Update, context: CallbackContext):
@@ -147,13 +150,23 @@ def callback_alarm(context: CallbackContext):
 
     for user in config_admin_user.get('users'):
         if user.get('enable') == True:
-            context.bot.send_message(chat_id=user.get('chat_id'), text=text)
+            try:
+                context.bot.send_message(
+                    chat_id=user.get('chat_id'), text=text)
+            except Unauthorized:
+                # remove update.message.chat_id from conversation list
+                logging.error(
+                    f'bot was blocked by the user: {user.get("chat_id")}')
+                continue
+            except TelegramError as te:
+                # handle all other telegram related errors
+                logging.error(te)
 
 
 def start_alarm_command(update: Update, context: CallbackContext):
+    context.job_queue.start()
     for user in config_admin_user.get('users'):
         if user.get('enable') == True:
-            context.job_queue.start()
             context.job_queue.run_repeating(
                 callback_alarm, interval=INTERVAL_BY_HOURS, first=0)
     update.message.reply_text(

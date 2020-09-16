@@ -61,8 +61,24 @@ def main():
     dp.add_handler(CommandHandler('help', help_command))
     dp.add_handler(CommandHandler('hide', hide_command))
     dp.add_handler(CommandHandler('start', start_command))
-    dp.add_handler(CommandHandler('start_alert', start_alarm_command))
-    dp.add_handler(CommandHandler('stop_alert', stop_alarm_command))
+    dp.add_handler(
+        CommandHandler(
+            'start_alert',
+            start_alarm_command,
+            filters=Filters.user(
+                username=os.getenv('ADMIN_USER'),
+            ),
+        ),
+    )
+    dp.add_handler(
+        CommandHandler(
+            'stop_alert',
+            stop_alarm_command,
+            filters=Filters.user(
+                username=os.getenv('ADMIN_USER'),
+            ),
+        ),
+    )
     dp.add_handler(CallbackQueryHandler(get_acction_buttom))
 
     def stop_and_restart():
