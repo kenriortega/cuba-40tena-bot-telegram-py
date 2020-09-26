@@ -20,6 +20,30 @@ rds = redis.Redis(host=os.getenv('REDIS_URI'), port=os.getenv(
 now = datetime.now()
 
 
+def get_forecast_from_redis(key: str) -> dict:
+    try:
+        _, fecha = key.split("_")
+        value = rds.get(name=key)
+        if value is None:
+            # no existe value en cache
+            #
+            r = requests.get(
+                f"https://cuba-weather-serverless.vercel.app/api/get-ismet-info",
+            )
+            value = r.json()
+            value = {
+                "fecha": fecha,
+                **r.json()
+            }
+            rds.set(name=key, value=f"{json.dumps(value)}", ex=EXP_KEY_CLIMA)
+            return value
+        else:
+            value = json.loads(value.decode("utf-8"))
+            return value
+    except Exception as e:
+        logging.error(e)
+
+
 def get_clima_from_redis(key: str) -> dict:
     try:
         municipio, fecha = key.split("_")

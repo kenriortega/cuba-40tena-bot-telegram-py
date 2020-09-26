@@ -6,6 +6,8 @@ telegram:
       description: "Get Covid Data"
     - text: "clima"
       description: "Get clima"
+    - text: "forecast"
+      description: "Get Forecast"
     - text: "hide"
       description: "Remove tag list"
     - text: "dev_to"

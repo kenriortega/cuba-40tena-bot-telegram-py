@@ -10,7 +10,7 @@ from telegram import BotCommand
 from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, MessageHandler, Filters
 
 # my own libs
-from core.commands import help_command, covid19_command, clima_command, hide_command, dev_command, start_command, start_alarm_command, stop_alarm_command
+from core.commands import help_command, covid19_command, clima_command, hide_command, dev_command, start_command, start_alarm_command, stop_alarm_command, forecast_command
 from core.handler import get_acction_buttom, filter_devto_by_tag
 from core.configs import SettingFile
 
@@ -56,6 +56,7 @@ def main():
     # jq = updater.job_queue
 
     dp.add_handler(CommandHandler('clima', clima_command))
+    dp.add_handler(CommandHandler('forecast', forecast_command))
     dp.add_handler(CommandHandler('covid19', covid19_command))
     dp.add_handler(CommandHandler('dev_to', dev_command))
     dp.add_handler(CommandHandler('help', help_command))

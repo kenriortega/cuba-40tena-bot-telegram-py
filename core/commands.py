@@ -1,6 +1,7 @@
 import os
 import requests
 import telegram
+from datetime import datetime
 from typing import List
 import logging
 from telegram.update import Update
@@ -8,6 +9,7 @@ from telegram.ext.callbackcontext import CallbackContext
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.error import (TelegramError, Unauthorized)
 from core.configs import SettingFile
+from core.handler import get_forecast_from_redis
 config = SettingFile(
     file_path="/home/pi/proyects/bot_pi_wheather/settings.yaml")
 config_admin = SettingFile(
@@ -18,7 +20,21 @@ config_admin_user = config_admin.load_external_services_file()
 # INTERVAL_BY_HOURS = 7200  # 2h
 # INTERVAL_BY_HOURS = 3600  # 1h
 # INTERVAL_BY_HOURS = 1800  # 30m
-INTERVAL_BY_HOURS = 1800  # 30s
+INTERVAL_BY_HOURS = 7200  # 30s
+now = datetime.now()
+
+
+def forecast_command(update: Update, context: CallbackContext):
+    date_time = now.strftime("%m-%d-%YT%H")
+    value = get_forecast_from_redis(key=f"FRC_{date_time}")
+    weather_days_hbn = value.get('weatherDays')[0]
+    text = ""
+    fr_title = value.get('forecast').get('title')
+    for af in weather_days_hbn.get('weatherDays'):
+        text += f" 📅: {af.get('day')} 🌡️ Max {af.get('min')} 🌡️ Min {af.get('max')} con {af.get('description')}\n"
+
+    message = f"{fr_title} 🏘️: {weather_days_hbn.get('cityName')}\n\n{text}"
+    update.message.reply_text(message)
 
 
 def clima_command(update: Update, context: CallbackContext):
