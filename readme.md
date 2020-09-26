@@ -1,13 +1,17 @@
 # Proyect Bot for wheather API
 
+## Description
+
+This proyect is only for educational propourses.
+
+Learning python3, redis.
+
+## Install from source
+
+`git clone https://github.com/kenriortega/cuba-40tena-bot-telegram-py.git`
+
 `python -m venv venv`
 
 `source ./venv/bin/activate`
 
-use screen for deploy my app into server linux de prueba migrar a systemd
-sudo apt install screen
-cmd:
-screen -S mybot
-python3 bot.py
-ctrl+a luego presionar d
-screen -r mybot
+`pip install -r requirements.txt`
